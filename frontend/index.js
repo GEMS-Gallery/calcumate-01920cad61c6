@@ -1,3 +1,10 @@
+import { HttpAgent, Actor } from "@dfinity/agent";
+import { idlFactory } from "./calculator.did.js";
+
+const agent = new HttpAgent();
+const canisterId = "your-canister-id"; // Replace with your actual canister ID
+const calculator = Actor.createActor(idlFactory, { agent, canisterId });
+
 document.addEventListener("DOMContentLoaded", function() {
     const display = document.getElementById("display");
     let currentInput = "";
@@ -23,31 +30,37 @@ document.addEventListener("DOMContentLoaded", function() {
         currentInput = "";
     };
 
-    const calculate = () => {
+    const calculate = async () => {
         let result;
         const prev = parseFloat(previousInput);
         const current = parseFloat(currentInput);
         if (isNaN(prev) || isNaN(current)) return;
-        switch (operator) {
-            case "+":
-                result = prev + current;
-                break;
-            case "-":
-                result = prev - current;
-                break;
-            case "*":
-                result = prev * current;
-                break;
-            case "/":
-                result = prev / current;
-                break;
-            default:
-                return;
+        try {
+            switch (operator) {
+                case "+":
+                    result = await calculator.add(prev, current);
+                    break;
+                case "-":
+                    result = await calculator.subtract(prev, current);
+                    break;
+                case "*":
+                    result = await calculator.multiply(prev, current);
+                    break;
+                case "/":
+                    const divisionResult = await calculator.divide(prev, current);
+                    result = divisionResult !== null ? divisionResult : "Error";
+                    break;
+                default:
+                    return;
+            }
+            currentInput = result.toString();
+            operator = null;
+            previousInput = "";
+            updateDisplay(currentInput);
+        } catch (error) {
+            console.error("Calculation error:", error);
+            updateDisplay("Error");
         }
-        currentInput = result.toString();
-        operator = null;
-        previousInput = "";
-        updateDisplay(currentInput);
     };
 
     const clear = () => {
